@@ -41,19 +41,19 @@
 
 
 
-| Микросервис  | Технологии | Назначение | Базы данных |
-| ------------- | ------------- | ------------- | ------------- |
-| Frontend  | ReactJS | Страницы сайта | Нет |
-| MinIO | MinIO | Хранение медиа файлов сайта | MinIO |
-| Kafka  | Kafka | Брокер сообщений между сервисами | Kafka |
-| Identity  | ASP.NET | Авторизация пользователей, создание аккаунтов, <br>выдача и хранение JWT токенов | PostgreSQL |
-| Profiles  | ASP.NET | Профили пользователей, display name, аватары, <br>баннеры и прочие настройки | PostgreSQL |
-| Email  | ASP.NET | Отправка сообщений по электронной почте | Нет |
-| Posts Writer  | ASP.NET | Публикация постов и источник истины | PostgreSQL |
-| Posts Reader  | ASP.NET | Чтение, быстрая отдача и кэширование постов | MongoDb, Redis |
-| Posts Likes  | ASP.NET | Лайки постов, хранение кто какие посты лайкнул | Redis |
-| Posts Comments  | ASP.NET | Комментарии постов, хранение кто на какие <br>посты оставил комментарий | MongoDb, Redis |
-| Followers | ASP.NET | Подписки пользователей, хранение кто на кого подписан | Redis |
+| Микросервис  | Технологии | Назначение | Базы данных | Ссылка на репозиторий |
+| ------------- | ------------- | ------------- | ------------- | ------------- |
+| Frontend  | ReactJS | Страницы сайта | Нет | Нет |
+| MinIO | MinIO | Хранение медиа файлов сайта | MinIO | Нет |
+| Kafka  | Kafka | Брокер сообщений между сервисами | Kafka | Нет |
+| Identity  | ASP.NET | Авторизация пользователей, создание аккаунтов, <br>выдача и хранение JWT токенов | PostgreSQL | [Перейти](https://github.com/ruslanovchy/RureSubIdentity) |
+| Profiles  | ASP.NET | Профили пользователей, display name, аватары, <br>баннеры и прочие настройки | PostgreSQL | [Перейти](https://github.com/ruslanovchy/RureSubProfiles) |
+| Email  | ASP.NET | Отправка сообщений по электронной почте | Нет | [Перейти](https://github.com/ruslanovchy/RureSubEmail) |
+| Posts Writer  | ASP.NET | Публикация постов и источник истины | PostgreSQL | [Перейти](https://github.com/ruslanovchy/RureSubPostsWriter) |
+| Posts Reader  | ASP.NET | Чтение, быстрая отдача и кэширование постов | MongoDb, Redis | [Перейти](https://github.com/ruslanovchy/RureSubPostsReader) |
+| Posts Likes  | ASP.NET | Лайки постов, хранение кто какие посты лайкнул | Redis | [Перейти](https://github.com/ruslanovchy/RureSubPostsLikes) |
+| Posts Comments  | ASP.NET | Комментарии постов, хранение кто на какие <br>посты оставил комментарий | MongoDb, Redis | [Перейти](https://github.com/ruslanovchy/RureSubPostsComments) |
+| Followers | ASP.NET | Подписки пользователей, хранение кто на кого подписан | Redis | [Перейти](https://github.com/ruslanovchy/RureSubFollowers) |
 
 ## Архитектурные паттерны
 
