@@ -3,7 +3,7 @@
 **RureSub** - Высоконагруженная социальная сеть на микросервисной архитектуре с использованием многих современных технологий.
 Социальная сеть была разработана и дорабатывается в качестве пет-проекта для демонстрации навыков в программировании и построении высоконагруженных архитектур.
 
-На данный момент RureSub имеет базовый и первонеобходимый функционал для социальных сетей.
+На данный момент RureSub имеет базовый функционал для социальных сетей.
 
 ## Стек технологий
 
@@ -26,6 +26,7 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-%2347A248.svg?style=for-the-badge&logo=mongodb&logoColor=white)
 ![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![MinIO](https://img.shields.io/badge/MinIO-99312f?style=for-the-badge&logo=minio&logoColor=white)
 
 **Other**
 
@@ -43,7 +44,7 @@
 | Микросервис  | Технологии | Назначение | Базы данных |
 | ------------- | ------------- | ------------- | ------------- |
 | Frontend  | ReactJS | Страницы сайта | Нет |
-| Amazon S3(minio)  | Временно MinIO | Хранение медиа файлов сайта | MinIO |
+| MinIO | MinIO | Хранение медиа файлов сайта | MinIO |
 | Kafka  | Kafka | Брокер сообщений между сервисами | Kafka |
 | Identity  | ASP.NET | Авторизация пользователей, создание аккаунтов, <br>выдача и хранение JWT токенов | PostgreSQL |
 | Profiles  | ASP.NET | Профили пользователей, display name, аватары, <br>баннеры и прочие настройки | PostgreSQL |
@@ -68,5 +69,28 @@
 
 Для гарантированной отправки сообщений в Kafka во всех сервисах используется шаблон Transactional Outbox. Так же для идемпотентности сообщений используется шаблон Transactinoal Inbox
 
+## Frontend
+
+Сайт выполнен в минималистичном стиле. Дизайн вдохновлён Reddit, Instagram и TikTok. Сайт динамичный, с анимациями. Использовал библиотеки для большей динамичности по типу Swiper для медиа файлов постов. Тексты постов могут быть стилизированными с стандартными возможностьями Markdown. 
+
 ## Скриншоты страниц
 
+**Главная страница**
+
+![1](assets/screenshots/1.png)
+
+**Страница создания поста**
+
+![2](assets/screenshots/2.png)
+
+**Профиль пользователя**
+
+![3](assets/screenshots/3.png)
+
+**Настройки**
+
+![4](assets/screenshots/4.png)
+
+## Полезные ссылки
+
+[**Перейти к сайту**](https://prudently-pseudoofficial-josefina.ngrok-free.dev)
