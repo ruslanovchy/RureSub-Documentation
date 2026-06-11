@@ -1,0 +1,379 @@
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  
+  frontend:
+    image: rurzen/ruresub_frontend
+    container_name: ruresub_frontend
+    restart: always
+    ports: 
+      - "5101:80"
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    restart: always
+    volumes:
+    - zookeeper_data:/var/lib/zookeeper/data
+    - zookeeper_log:/var/lib/zookeeper/log
+    environment:
+      KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 60000
+      KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 60000
+      ZOOKEEPER_CLIENT_PORT: 2181
+    
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    restart: always
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT_INTERNAL://0.0.0.0:29092,PLAINTEXT_EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_INTERNAL://kafka:29092,PLAINTEXT_EXTERNAL://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-init
+    depends_on:
+      - kafka
+    entrypoint: [ "sh", "-c" ]
+    command:
+      - |
+        echo "Waiting for Kafka to be ready..."
+        kafka-cluster cluster-id --bootstrap-server kafka:29092
+        
+        echo "Creating Kafka topics..."
+        for topic in user-created profile-created verify-email-token-created verify-recovery-token-created post-created post-deleted profile-display-name-changed profile-avatar-changed post-liked comment-liked post-commented comments-deleted user-followed user-unfollowed; do
+            kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic $$topic
+        done
+        echo "All topics created successfully!"
+        # Создаем файл-маркер для хелсчека
+        touch /tmp/topics-created
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    restart: always
+    command: server /data --console-address ":9001"
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: minio-init
+    depends_on:
+      - minio
+    entrypoint: [ "sh", "-c" ]
+    command:
+      - |
+        # Ждем, пока MinIO поднимется
+        sleep 3; 
+        
+        # Настраиваем подключение (mc alias set ИМЯ СЕРВЕР ЛОГИН ПАРОЛЬ)
+        # Подключаемся по внутреннему имени сервиса 'minio:9000'
+        mc alias set myminio http://minio:9000 minioadmin minioadmin;
+        
+        # Функция для безопасного создания бакета и настройки прав
+        create_public_bucket() {
+            local bucket_name=$$1
+            # Проверяем, существует ли уже бакет, чтобы не сыпать ошибками
+            if ! mc ls myminio/$$bucket_name > /dev/null 2>&1; then
+                mc mb myminio/$$bucket_name
+                mc anonymous set download myminio/$$bucket_name
+                echo "Bucket '$$bucket_name' created and set to public download."
+            else
+                echo "Bucket '$$bucket_name' already exists."
+            fi
+        }
+
+        # Создаем ваши бакеты
+        create_public_bucket "profile-avatars"
+        create_public_bucket "profile-banners"
+        create_public_bucket "post-media-files"
+        
+        exit 0;
+
+  postgres_identity:
+    image: postgres:16-alpine
+    container_name: postgres_identity
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1111
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_identity_data:/var/lib/postgresql/data
+      - ./postgres-init-scripts/identity.sql:/docker-entrypoint-initdb.d/identity.sql:ro
+   
+  postgres_profiles:
+    image: postgres:16-alpine
+    container_name: postgres_profiles
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1111
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_profiles_data:/var/lib/postgresql/data
+      - ./postgres-init-scripts/profiles.sql:/docker-entrypoint-initdb.d/profiles.sql:ro
+     
+  postgres_posts:
+    image: postgres:16-alpine
+    container_name: postgres_posts
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1111
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_posts_data:/var/lib/postgresql/data
+      - ./postgres-init-scripts/posts.sql:/docker-entrypoint-initdb.d/posts.sql:ro
+
+  postgres_followers:
+    image: postgres:16-alpine
+    container_name: postgres_followers
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1111
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_followers_data:/var/lib/postgresql/data
+      - ./postgres-init-scripts/followers.sql:/docker-entrypoint-initdb.d/followers.sql:ro
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo-init-scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+  
+  redis_likes:
+    image: redis
+    container_name: redis_likes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_likes_data:/data
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+
+  redis_comments:
+    image: redis
+    container_name: redis_comments
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_comments_data:/data
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+
+  redis_followers:
+    image: redis
+    container_name: redis_followers
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis_followers_data:/data
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+
+  ruresub_identity:
+    image: rurzen/ruresub_identity
+    container_name: ruresub_identity
+    restart: always
+    ports: 
+      - "5001:8080"
+    environment:
+      - JWT__Key=${JWT_KEY}
+      - ConnectionStrings__Db=${IDENTITY_POSTGRES_CONNECTION}
+      - Kafka__BootstrapServers=kafka:9092
+      - Kafka__GroupId=identity-service 
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
+  ruresub_profiles:
+    image: rurzen/ruresub_profiles
+    container_name: ruresub_profiles
+    restart: always
+    ports: 
+      - "5002:8080"
+    environment:
+      - JWT__Key=${JWT_KEY}
+      - ConnectionStrings__Db=${PROFILES_POSTGRES_CONNECTION}
+      - Kafka__BootstrapServers=kafka:9092
+      - Kafka__GroupId=profiles-service 
+      - Redis__FollowersConnectionString=${REDIS_FOLLOWERS_CONNECTION}
+      - S3__ServiceURL=http://minio:9000
+      - S3__StoragePath=/api/storage
+      - S3__AvatarsBucket=profile-avatars
+      - S3__BannersBucket=profile-banners
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
+  ruresub_email:
+    image: rurzen/ruresub_email
+    container_name: ruresub_email
+    restart: always
+    ports: 
+      - "5003:8080"
+    environment:
+      - Kafka__BootstrapServers=kafka:9092
+      - Kafka__GroupId=email-service
+      - Email__Address=${EMAIL_ADDRESS}
+      - Email__Password=${EMAIL_PASSWORD}
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+  
+  ruresub_posts_writer:
+    image: rurzen/ruresub_posts_writer
+    container_name: ruresub_posts_writer
+    restart: always
+    ports: 
+      - "5004:8080"
+    environment:
+      - JWT__Key=${JWT_KEY}
+      - ConnectionStrings__Db=${POSTS_WRITER_POSTGRES_CONNECTION}
+      - Kafka__BootstrapServers=kafka:9092
+      - Kafka__GroupId=posts-writer-service
+      - Http__ProfileApi=http://nginx/api/profile
+      - S3__ServiceURL=http://minio:9000
+      - S3__StoragePath=/api/storage
+      - S3__MediaFilesBucket=post-media-files
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    
+  ruresub_posts_reader:
+    image: rurzen/ruresub_posts_reader
+    container_name: ruresub_posts_reader
+    restart: always
+    ports: 
+      - "5005:8080"
+    environment:
+      - JWT__Key=${JWT_KEY}
+      - MongoDb__ConnectionString=${POSTS_READER_MONGO_CONNECTION}
+      - MongoDb__DatabaseName=rure_sub_posts
+      - Kafka__BootstrapServers=kafka:9092
+      - Kafka__GroupId=posts-reader-service
+      - Http__Api=http://nginx/api
+      - Redis__FollowersConnectionString=${REDIS_FOLLOWERS_CONNECTION}
+      - Redis__LikesConnectionString=${REDIS_LIKES_CONNECTION}
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
+  ruresub_posts_likes:
+    image: rurzen/ruresub_posts_likes
+    container_name: ruresub_posts_likes
+    restart: always
+    ports: 
+      - "5006:8080"
+    environment:
+      - JWT__Key=${JWT_KEY}
+      - Kafka__BootstrapServers=kafka:9092
+      - Kafka__GroupId=likes-service
+      - Http__Api=http://nginx/api
+      - Redis__ConnectionString=${REDIS_LIKES_CONNECTION}
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+  
+  ruresub_posts_comments:
+    image: rurzen/ruresub_posts_comments
+    container_name: ruresub_posts_comments
+    restart: always
+    ports: 
+      - "5007:8080"
+    environment:
+      - JWT__Key=${JWT_KEY}
+      - MongoDb__ConnectionString=${POSTS_COMMENTS_MONGO_CONNECTION}
+      - MongoDb__DatabaseName=rure_sub_comments
+      - Kafka__BootstrapServers=kafka:9092
+      - Kafka__GroupId=posts-comments-service
+      - Http__Api=http://nginx/api
+      - Http__ProfileApi=http://nginx/api/profile
+      - Redis__ConnectionString=${REDIS_COMMENTS_CONNECTION}
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
+  ruresub_followers:
+    image: rurzen/ruresub_followers
+    container_name: ruresub_followers
+    restart: always
+    ports: 
+      - "5008:8080"
+    environment:
+      - JWT__Key=${JWT_KEY}
+      - ConnectionStrings__Db=${FOLLOWERS_POSTGRES_CONNECTION}
+      - Kafka__BootstrapServers=kafka:9092
+      - Kafka__GroupId=followers-service
+      - Redis__ConnectionString=${REDIS_FOLLOWERS_CONNECTION}
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
+volumes:
+  kafka_data:
+  zookeeper_data:
+  minio_data:
+  mongo_data:
+  zookeeper_log:
+  redis_likes_data:
+  redis_comments_data:
+  redis_followers_data:
+  postgres_identity_data:
+  postgres_profiles_data:
+  postgres_posts_data:
+  postgres_followers_data:
