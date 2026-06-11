@@ -1,6 +1,6 @@
 # RureSub
 
-Languages: [ENG](README.md) [RUS](README.md)
+Languages: [ENG](README.md) [RUS](README.ru.md)
 
 **RureSub** - A high-load social network built on a microservices architecture using many modern technologies.
 The social network was developed and is continuously being improved as a pet project to demonstrate skills in software development and building high-load architectures.
