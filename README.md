@@ -1,15 +1,15 @@
 # RureSub
 
-**RureSub** - Высоконагруженная социальная сеть на микросервисной архитектуре с использованием многих современных технологий.
-Социальная сеть была разработана и дорабатывается в качестве пет проекта для демонстрации навыков в программировании и построении высоконагруженных архитектур.
+**RureSub** - A high-load social network built on a microservices architecture using many modern technologies.
+The social network was developed and is continuously being improved as a pet project to demonstrate skills in software development and building high-load architectures.
 
-На данный момент RureSub имеет базовый функционал для социальных сетей.
+RureSub currently has basic social network functionality.
 
-## Ссылки
+## Links
 
-[**Перейти к сайту**](https://prudently-pseudoofficial-josefina.ngrok-free.dev)
+[**Visit the website**](https://prudently-pseudoofficial-josefina.ngrok-free.dev)
 
-## Стек технологий
+## Tech Stack
 
 **Backend**
 
@@ -39,64 +39,62 @@
 ![Amazon S3](https://img.shields.io/badge/Amazon%20S3-FF9900?style=for-the-badge&logo=amazons3&logoColor=white)
 ![Nginx](https://img.shields.io/badge/nginx-%23009639.svg?style=for-the-badge&logo=nginx&logoColor=white)
 
-## Архитектурная диаграмма
+## Architecture Diagram
 
 ![Diagram](assets/diagrams/architecture.png)
 
-
-
-| Микросервис  | Технологии | Назначение | Базы данных | Ссылка на репозиторий |
+| Microservice   | Technologies | Purpose | Databases | Repository |
 | ------------- | ------------- | ------------- | ------------- | ------------- |
-| Frontend  | ReactJS | Страницы сайта | Нет | Нет |
-| MinIO | MinIO | Хранение медиа файлов сайта | Нет | Нет |
-| Kafka  | Kafka | Брокер сообщений между сервисами | Нет | Нет |
-| Identity  | ASP.NET | Авторизация пользователей, создание аккаунтов, <br>выдача и хранение JWT токенов | PostgreSQL | [Перейти](https://github.com/ruslanovchy/RureSubIdentity) |
-| Profiles  | ASP.NET | Профили пользователей, display name, аватары, <br>баннеры и прочие настройки | PostgreSQL | [Перейти](https://github.com/ruslanovchy/RureSubProfiles) |
-| Email  | ASP.NET | Отправка сообщений по электронной почте | Нет | [Перейти](https://github.com/ruslanovchy/RureSubEmail) |
-| Posts Writer  | ASP.NET | Публикация постов и источник истины | PostgreSQL | [Перейти](https://github.com/ruslanovchy/RureSubPostsWriter) |
-| Posts Reader  | ASP.NET | Чтение, быстрая отдача и кэширование постов | MongoDb, Redis | [Перейти](https://github.com/ruslanovchy/RureSubPostsReader) |
-| Posts Likes  | ASP.NET | Лайки постов, хранение кто какие посты лайкнул | Redis | [Перейти](https://github.com/ruslanovchy/RureSubPostsLikes) |
-| Posts Comments  | ASP.NET | Комментарии постов, хранение кто на какие <br>посты оставил комментарий | MongoDb, Redis | [Перейти](https://github.com/ruslanovchy/RureSubPostsComments) |
-| Followers | ASP.NET | Подписки пользователей, хранение кто на кого подписан | PostgreSQL, Redis | [Перейти](https://github.com/ruslanovchy/RureSubFollowers) |
+| Frontend  | ReactJS | Website pages | None | None |
+| MinIO | MinIO | Media file storage | None | None |
+| Kafka  | Kafka | Message broker between services | None | None |
+| Identity  | ASP.NET | User authentication, account creation, <br>issuing and storing JWT tokens | PostgreSQL | [Go](https://github.com/ruslanovchy/RureSubIdentity) |
+| Profiles  | ASP.NET | User profiles, display name, avatars, <br>banners and other settings | PostgreSQL | [Go](https://github.com/ruslanovchy/RureSubProfiles) |
+| Email  | ASP.NET | Sending emails | None | [Go](https://github.com/ruslanovchy/RureSubEmail) |
+| Posts Writer  | ASP.NET | Publishing posts and source of truth | PostgreSQL | [Go](https://github.com/ruslanovchy/RureSubPostsWriter) |
+| Posts Reader  | ASP.NET | Reading, fast delivery and caching of posts | MongoDB, Redis | [Go](https://github.com/ruslanovchy/RureSubPostsReader) |
+| Posts Likes  | ASP.NET | Post likes, storing which users liked which posts | Redis | [Go](https://github.com/ruslanovchy/RureSubPostsLikes) |
+| Posts Comments  | ASP.NET | Post comments, storing which users <br>commented on which posts | MongoDB, Redis | [Go](https://github.com/ruslanovchy/RureSubPostsComments) |
+| Followers | ASP.NET | User subscriptions, storing who follows whom | PostgreSQL, Redis | [Go](https://github.com/ruslanovchy/RureSubFollowers) |
 
-## Архитектурные паттерны
+## Architectural Patterns
 
-**Коммуникация**
+**Communication**
 
-Сервисы общаются между собой через **Kafka** асинхронно. Для некоторых случаев используется **HTTP** запросы между сервисами. Один из таких случаев в **Posts Writer**. Когда создается новый пост, **Posts Writer** делает запрос на **Profiles** для получения данных профиля автора, сохраняет в свою базу данных и отправляет в **Kafka**. **Posts Reader** же обрабатывает сообщения и сохраняет всю информацию о посте включая имя автора, аватар автора и т. д. в **MongoDb** денормализованно.
+Services communicate with each other asynchronously via **Kafka**. **HTTP** requests between services are used in some cases. One such case is **Posts Writer**. When a new post is created, **Posts Writer** sends a request to **Profiles** to fetch the author's profile data, saves it to its own database, and publishes the message to **Kafka**. **Posts Reader** then processes the messages and stores all post information — including the author's name, avatar, etc. — denormalized in **MongoDB**.
 
 **CQRS**
 
-Публикация и чтение постов происходят в разных сервисах. Нагрузка на сервис чтения постов намного выше нагрузки на сервис публикаций, поэтому разумным решением было разделить эти операции на два независимых сервиса.
+Post publishing and reading happen in separate services. The read load is significantly higher than the write load, so splitting these operations into two independent services was the logical solution.
 
 **Transactional Outbox/Inbox**
 
-Для гарантированной отправки сообщений в Kafka во всех сервисах используется шаблон Transactional Outbox. Также для идемпотентности сообщений используется шаблон Transactional Inbox.
+All services use the Transactional Outbox pattern to guarantee message delivery to Kafka. The Transactional Inbox pattern is also used to ensure message idempotency.
 
 ## Frontend
 
-Сайт выполнен в минималистичном стиле. Дизайн вдохновлён Reddit, Instagram и TikTok. Сайт динамичный, с анимациями. Использовал библиотеки для большей динамичности, такие как Swiper для медиа файлов постов. Тексты постов могут быть стилизированными с стандартными возможностями Markdown. 
+The site features a minimalist design inspired by Reddit, Instagram, and TikTok. It is dynamic, with animations throughout. Libraries such as Swiper are used for media file display in posts. Post text can be styled using standard Markdown formatting.
 
-## Скриншоты страниц
+## Screenshots
 
-**Главная страница**
+**Home page**
 
 ![1](assets/screenshots/1.png)
 
-**Страница создания поста**
+**Post creation page**
 
 ![2](assets/screenshots/2.png)
 
-**Профиль пользователя**
+**User profile**
 
 ![3](assets/screenshots/3.png)
 
-**Настройки**
+**Settings**
 
 ![4](assets/screenshots/4.png)
 
-## Как запустить
+## How to Run
 
-В репозитории есть папка **compose**, в котором находится все необходимое для запуска **docker compose**. Перед запуском убедитесь что у вас на устройстве установлен **[docker](https://www.docker.com/)**. Также требуется ввести некоторые переменные окружения в файле **.env**, такие как **JWT_KEY**, **EMAIL_ADDRESS**, **EMAIL_PASSWORD**. 
+The repository contains a **compose** folder with everything needed to run **docker compose**. Make sure you have **[Docker](https://www.docker.com/)** installed before getting started. You will also need to set several environment variables in the **.env** file, such as **JWT_KEY**, **EMAIL_ADDRESS**, and **EMAIL_PASSWORD**.
 
-Для того чтобы запустить приложение нужно скачать папку compose или репозиторий, затем открыть терминал, перейти к папке **compose** и ввести команду **docker compose up**. Для некоторых операционных систем требуются разрешения на чтение файлов из папок **postgres-init-scripts** и **mongo-init-scripts**. 
+To run the application, download the compose folder or the full repository, open a terminal, navigate to the **compose** folder, and run **docker compose up**. Some operating systems may require read permissions for the **postgres-init-scripts** and **mongo-init-scripts** folders.
